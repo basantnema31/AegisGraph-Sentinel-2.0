@@ -5,6 +5,8 @@ from pathlib import Path
 
 def test_command_center_uses_cached_snapshots_and_background_post():
     source = Path("app.py").read_text(encoding="utf-8")
+    for path in Path("src/ui/pages").glob("*.py"):
+        source += path.read_text(encoding="utf-8")
 
     assert "_fetch_health_snapshot(API_URL)" in source
     assert "_fetch_stats_snapshot(API_URL)" in source

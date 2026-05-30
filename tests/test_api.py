@@ -270,6 +270,7 @@ class TestLegalExportSecurity:
 
         assert response.status_code == 401
 
+    @pytest.mark.skipif(not api_main.SLOWAPI_AVAILABLE, reason="slowapi not installed")
     def test_legal_export_is_rate_limited(self, monkeypatch):
         self._enable_legal_export(monkeypatch)
 
