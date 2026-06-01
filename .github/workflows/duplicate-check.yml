@@ -11,20 +11,43 @@ jobs:
   check-duplicate:
     runs-on: ubuntu-latest
     steps:
-      - name: Find Duplicate Issues
-        uses: actions-cool/issues-helper@v3
+      - name: Find and Mark Duplicate Issues
+        uses: actions/github-script@v7
         with:
-          actions: 'find-issues'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-title: ${{ github.event.issue.title }}
-          issue-state: 'all'
-
-      - name: Mark as Duplicate
-        if: env.find-number != ''
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: 'create-label, create-comment'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          labels: 'duplicate'
-          body: 'Hello! This issue appears to be a duplicate of #${{ env.find-number }}. Please check the original thread for updates. 🤖'
+          script: |
+            const title = context.payload.issue.title;
+            const currentIssueNumber = context.payload.issue.number;
+            
+            // Search for issues with exact same title
+            const { data: searchResults } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue in:title "${title}"`,
+              per_page: 5
+            });
+            
+            // Find an older issue with the exact same title (case insensitive)
+            const duplicate = searchResults.items.find(item => 
+              item.number !== currentIssueNumber && 
+              item.title.toLowerCase() === title.toLowerCase()
+            );
+            
+            if (duplicate) {
+              console.log(`Found duplicate issue: #${duplicate.number}`);
+              
+              // Add label
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: currentIssueNumber,
+                labels: ['duplicate']
+              });
+              
+              // Add comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: currentIssueNumber,
+                body: `Hello! This issue appears to be a duplicate of #${duplicate.number}. Please check the original thread for updates. 🤖`
+              });
+            } else {
+              console.log('No duplicates found.');
+            }

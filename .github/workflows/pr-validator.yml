@@ -78,8 +78,8 @@ jobs:
           backend_only = os.getenv('BACKEND_ONLY', 'false').lower() == 'true'
           errors = []
           
-          # Require Issue Number Link
-          match = re.search(r'Fixes\s*#\s*(\d+)', body, re.IGNORECASE)
+          # Require Issue Number Link (lenient)
+          match = re.search(r'(?:Fixes|Resolves|Closes).*?#\s*(\d+)', body, re.IGNORECASE)
           if not match:
               errors.append("- **Missing Linked Issue:** You must include a valid issue number link (e.g., `Fixes #123`).")
           else:
@@ -87,7 +87,7 @@ jobs:
                   f.write(match.group(1))
               
           # Require Screenshot/Visual Evidence unless the PR is backend or infrastructure only
-          if not backend_only and not re.search(r'!\[.*?\]\(.*?\)|<img\s+[^>]*src=', body):
+          if not backend_only and not re.search(r'(!\[.*?\]\(.*?\)|<img\s+[^>]*src=|https?://github\.com/.*?/assets/|https?://.*?\.(png|jpg|jpeg|gif|mp4|webm))', body, re.IGNORECASE):
               errors.append("- **Missing Screenshot/Visual Proof:** You must attach a UI screenshot or a terminal test log image.")
           
           if errors:
